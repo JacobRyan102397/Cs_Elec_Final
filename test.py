@@ -9,10 +9,10 @@ class TestApp(unittest.TestCase):
 
         warnings.simplefilter("ignore", category=DeprecationWarning)
 
-    # def test_index(self):
-    #     response = self.app.get("/")
-    #     self.assertEqual(response.status_code, 200)
-    #     self.assertEqual(response.data.decode(), "index.html")
+    def test_index(self):
+        response = self.app.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data.decode(), "index.html")
 
     def test_first_name(self):
         response = self.app.get("/first_name")
