@@ -1,7 +1,7 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, make_response
 from flask_mysqldb import MySQL
 import re
-import dicttoxml  # To convert dictionaries to XML
+import xml.etree.ElementTree as ET
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -14,6 +14,22 @@ app.config['MYSQL_DB'] = 'cselec'
 app.config['MYSQL_CURSORCLASS'] = 'DictCursor'
 
 mysql = MySQL(app)
+
+# Helper function to format the response
+def format_response(data, response_format):
+    if response_format == 'xml':
+        root = ET.Element("mock_data")
+        for item in data:
+            record = ET.SubElement(root, "record")
+            for key, value in item.items():
+                child = ET.SubElement(record, key)
+                child.text = str(value)
+        xml_str = ET.tostring(root, encoding='utf-8').decode('utf-8')
+        response = make_response(xml_str)
+        response.headers['Content-Type'] = 'application/xml'
+        return response
+    else:
+        return jsonify(data)
 
 # Read (Retrieve)
 @app.route('/')
@@ -86,22 +102,26 @@ def edit(id):
         # Input validation
         if not first_name or not last_name or not email:
             flash("First Name, Last Name, and Email are required!")
-            return redirect(url_for('edit'))
+            return redirect(url_for('edit', id=id))
 
         if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
             flash("Invalid Email Address!")
-            return redirect(url_for('edit'))
+            return redirect(url_for('edit', id=id))
 
         if gender not in ['Male', 'Female', 'Other']:
             flash("Invalid Gender!")
-            return redirect(url_for('edit'))
+            return redirect(url_for('edit', id=id))
 
         if not re.match(r"^(?:\d{1,3}\.){3}\d{1,3}$", ip_address):
             flash("Invalid IP Address!")
-            return redirect(url_for('edit'))
+            return redirect(url_for('edit', id=id))
 
         try:
-            cur.execute("UPDATE mock_data SET first_name=%s, last_name=%s, email=%s, gender=%s, ip_address=%s WHERE id=%s", (first_name, last_name, email, gender, ip_address, id))
+            cur.execute("""
+                UPDATE mock_data 
+                SET first_name=%s, last_name=%s, email=%s, gender=%s, ip_address=%s 
+                WHERE id=%s
+                """, (first_name, last_name, email, gender, ip_address, id))
             mysql.connection.commit()
             flash("Record successfully updated!")
         except Exception as e:
@@ -111,14 +131,15 @@ def edit(id):
             cur.close()
 
         return redirect(url_for('index'))
-    else:
-        cur.execute("SELECT * FROM mock_data WHERE id=%s", (id,))
-        record = cur.fetchone()
-        cur.close()
-        return render_template('edit.html', record=record)
+
+    cur.execute("SELECT * FROM mock_data WHERE id=%s", (id,))
+    record = cur.fetchone()
+    cur.close()
+    
+    return render_template('edit.html', record=record)
 
 # Delete
-@app.route('/delete/<int:id>', methods=['GET', 'POST'])
+@app.route('/delete/<int:id>', methods=['POST'])
 def delete(id):
     cur = mysql.connection.cursor()
 
@@ -133,6 +154,28 @@ def delete(id):
         cur.close()
 
     return redirect(url_for('index'))
+
+# Search Functionality
+@app.route('/search', methods=['GET'])
+def search():
+    query = request.args.get('query', '')
+    filter_by = request.args.get('filter_by', 'first_name')
+
+    cur = mysql.connection.cursor()
+
+    if query:
+        # Use LIKE for partial matching
+        search_query = f"SELECT * FROM mock_data WHERE {filter_by} LIKE %s"
+        cur.execute(search_query, (f'%{query}%',))
+        search_results = cur.fetchall()
+    else:
+        # If no search query is provided, return all records
+        cur.execute("SELECT * FROM mock_data")
+        search_results = cur.fetchall()
+
+    cur.close()
+
+    return render_template('index.html', mock_data=search_results)
 
 if __name__ == '__main__':
     app.run(debug=True)

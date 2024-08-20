@@ -49,6 +49,10 @@
             justify-content: center;
             gap: 10px;
         }
+        .search-bar {
+            float: right;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -64,11 +68,27 @@
     {% endif %}
     {% endwith %}
 
-    <form action="{{ url_for('add_form') }}" method="get">
+    <form action="{{ url_for('add_form') }}" method="get" target="_blank">
         <button type="submit" class="button">Add Record</button>
     </form>
 
-    <h3>List of Data</h3>
+    <!-- Search Bar -->
+    <div class="search-bar">
+        <form action="{{ url_for('search') }}" method="get">
+            <input type="text" name="query" placeholder="Search...">
+            <select name="filter_by">
+                <option value="first_name">First Name</option>
+                <option value="last_name">Last Name</option>
+                <option value="email">Email</option>
+                <option value="gender">Gender</option>
+                <option value="ip_address">IP Address</option>
+            </select>
+            <button type="submit" class="button">Search</button>
+        </form>
+    </div>
+
+    <h3>{% if request.args.get('query') %}Search Results{% else %}List of Data{% endif %}</h3>
+
     <table>
         <thead>
             <tr>
