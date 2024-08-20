@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mock Data CRUD</title>
     <style>
+        /* Style for table to make it full-width, with borders and centered text */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -17,7 +18,7 @@
             padding: 8px;
         }
         th {
-            background-color: #f2f2f2;
+            background-color: #f2f2f2;  /* Light gray background for table headers */
         }
         .form-group {
             margin-bottom: 15px;
@@ -34,20 +35,20 @@
             padding: 10px 15px;
             font-size: 16px;
             color: white;
-            background-color: #007bff;
+            background-color: #007bff;  /* Blue background for buttons */
             border: none;
-            border-radius: 5px;
+            border-radius: 5px;  /* Rounded corners */
             cursor: pointer;
             text-align: center;
             text-decoration: none;
         }
         .button:hover {
-            background-color: #0056b3;
+            background-color: #0056b3;  /* Darker blue when hovering over buttons */
         }
         .action-buttons {
             display: flex;
             justify-content: center;
-            gap: 10px;
+            gap: 10px;  /* Space between action buttons */
         }
         .search-bar {
             float: right;
@@ -58,16 +59,18 @@
 <body>
     <h2>Data List</h2>
 
+    <!-- Display flashed messages (e.g., success or error messages) -->
     {% with messages = get_flashed_messages() %}
     {% if messages %}
     <ul>
         {% for message in messages %}
-        <li>{{ message }}</li>
+        <li>{{ message }}</li>  <!-- Display each flashed message -->
         {% endfor %}
     </ul>
     {% endif %}
     {% endwith %}
 
+    <!-- Button to open the add record form in a new tab -->
     <form action="{{ url_for('add_form') }}" method="get" target="_blank">
         <button type="submit" class="button">Add Record</button>
     </form>
@@ -87,8 +90,10 @@
         </form>
     </div>
 
+    <!-- Display title based on whether a search query is present -->
     <h3>{% if request.args.get('query') %}Search Results{% else %}List of Data{% endif %}</h3>
 
+    <!-- Table to display the list of records -->
     <table>
         <thead>
             <tr>
@@ -102,6 +107,7 @@
             </tr>
         </thead>
         <tbody>
+            <!-- Loop through each record and create a table row -->
             {% for row in mock_data %}
             <tr>
                 <td>{{ row.id }}</td>
@@ -111,9 +117,11 @@
                 <td>{{ row.gender }}</td>
                 <td>{{ row.ip_address }}</td>
                 <td class="action-buttons">
+                    <!-- Form to edit a record -->
                     <form action="{{ url_for('edit', id=row.id) }}" method="get" target="_blank" style="display:inline;">
                         <button type="submit" class="button">Edit</button>
                     </form>
+                    <!-- Form to delete a record -->
                     <form action="{{ url_for('delete', id=row.id) }}" method="post" style="display:inline;">
                         <button type="submit" class="button" onclick="return confirm('Are you sure?')">Delete</button>
                     </form>
