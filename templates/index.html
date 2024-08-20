@@ -64,7 +64,7 @@
     {% endif %}
     {% endwith %}
 
-    <form action="{{ url_for('add_form') }}" method="get" target="_blank">
+    <form action="{{ url_for('add_form') }}" method="get">
         <button type="submit" class="button">Add Record</button>
     </form>
 
@@ -94,7 +94,7 @@
                     <form action="{{ url_for('edit', id=row.id) }}" method="get" target="_blank" style="display:inline;">
                         <button type="submit" class="button">Edit</button>
                     </form>
-                    <form action="{{ url_for('delete', id=row.id) }}" method="post" target="_blank" style="display:inline;">
+                    <form action="{{ url_for('delete', id=row.id) }}" method="post" style="display:inline;">
                         <button type="submit" class="button" onclick="return confirm('Are you sure?')">Delete</button>
                     </form>
                 </td>

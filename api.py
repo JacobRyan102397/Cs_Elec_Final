@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_mysqldb import MySQL
 import re
+import dicttoxml  # To convert dictionaries to XML
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -85,23 +86,22 @@ def edit(id):
         # Input validation
         if not first_name or not last_name or not email:
             flash("First Name, Last Name, and Email are required!")
-            return redirect(url_for('edit', id=id))
+            return redirect(url_for('edit'))
 
         if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
             flash("Invalid Email Address!")
-            return redirect(url_for('edit', id=id))
+            return redirect(url_for('edit'))
 
         if gender not in ['Male', 'Female', 'Other']:
             flash("Invalid Gender!")
-            return redirect(url_for('edit', id=id))
+            return redirect(url_for('edit'))
 
         if not re.match(r"^(?:\d{1,3}\.){3}\d{1,3}$", ip_address):
             flash("Invalid IP Address!")
-            return redirect(url_for('edit', id=id))
+            return redirect(url_for('edit'))
 
         try:
-            cur.execute("UPDATE mock_data SET first_name=%s, last_name=%s, email=%s, gender=%s, ip_address=%s WHERE id=%s",
-                        (first_name, last_name, email, gender, ip_address, id))
+            cur.execute("UPDATE mock_data SET first_name=%s, last_name=%s, email=%s, gender=%s, ip_address=%s WHERE id=%s", (first_name, last_name, email, gender, ip_address, id))
             mysql.connection.commit()
             flash("Record successfully updated!")
         except Exception as e:
@@ -111,11 +111,11 @@ def edit(id):
             cur.close()
 
         return redirect(url_for('index'))
-
-    cur.execute("SELECT * FROM mock_data WHERE id=%s", (id,))
-    record = cur.fetchone()
-    cur.close()
-    return render_template('edit.html', record=record)
+    else:
+        cur.execute("SELECT * FROM mock_data WHERE id=%s", (id,))
+        record = cur.fetchone()
+        cur.close()
+        return render_template('edit.html', record=record)
 
 # Delete
 @app.route('/delete/<int:id>', methods=['GET', 'POST'])
