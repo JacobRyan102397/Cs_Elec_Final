@@ -93,35 +93,41 @@
         {% endwith %}
 
         <!-- Form to edit an existing record -->
-        <form action="{{ url_for('edit', id=record.id) }}" method="post" onsubmit="return validateForm()">
+        <form action="{{ url_for('edit', id=record.idName) }}" method="post" onsubmit="return validateForm()">
             <!-- First Name input with existing value pre-filled -->
             <div class="form-group">
-                <label for="first_name">First Name:</label>
-                <input type="text" id="first_name" name="first_name" value="{{ record.first_name }}" required>
+                <label for="f_name">First Name:</label>
+                <input type="text" id="f_name" name="f_name" value="{{ record.f_name }}" required>
+            </div>
+            <!-- Middle Name input with existing value pre-filled -->
+            <div class="form-group">
+                <label for="m_name">Middle Name:</label>
+                <input type="text" id="m_name" name="m_name" value="{{ record.m_name }}">
             </div>
             <!-- Last Name input with existing value pre-filled -->
             <div class="form-group">
-                <label for="last_name">Last Name:</label>
-                <input type="text" id="last_name" name="last_name" value="{{ record.last_name }}" required>
+                <label for="l_name">Last Name:</label>
+                <input type="text" id="l_name" name="l_name" value="{{ record.l_name }}" required>
             </div>
-            <!-- Email input with existing value pre-filled -->
+            <!-- City selection with pre-selected value -->
             <div class="form-group">
-                <label for="email">Email:</label>
-                <input type="email" id="email" name="email" value="{{ record.email }}" required>
-            </div>
-            <!-- Gender selection with pre-selected value -->
-            <div class="form-group">
-                <label for="gender">Gender:</label>
-                <select id="gender" name="gender" required>
-                    <option value="Male" {% if record.gender == 'Male' %}selected{% endif %}>Male</option>
-                    <option value="Female" {% if record.gender == 'Female' %}selected{% endif %}>Female</option>
-                    <option value="Other" {% if record.gender == 'Other' %}selected{% endif %}>Other</option>
+                <label for="City_idCity">City:</label>
+                <select id="City_idCity" name="City_idCity" required>
+                    <option value="">Select City</option>
+                    {% for city in cities %}
+                    <option value="{{ city.idCity }}" {% if record.City_idCity == city.idCity %}selected{% endif %}>{{ city.PPC }}</option>
+                    {% endfor %}
                 </select>
             </div>
-            <!-- IP Address input with existing value pre-filled and pattern validation -->
+            <!-- Job selection with pre-selected value -->
             <div class="form-group">
-                <label for="ip_address">IP Address:</label>
-                <input type="text" id="ip_address" name="ip_address" value="{{ record.ip_address }}" pattern="^(?:\d{1,3}\.){3}\d{1,3}$" placeholder="e.g., 192.168.1.1" required>
+                <label for="Job_idJob">Job:</label>
+                <select id="Job_idJob" name="Job_idJob" required>
+                    <option value="">Select Job</option>
+                    {% for job in jobs %}
+                    <option value="{{ job.idJob }}" {% if record.Job_idJob == job.idJob %}selected{% endif %}>{{ job['White color'] }}</option>
+                    {% endfor %}
+                </select>
             </div>
             <!-- Submit button -->
             <button type="submit" class="button">Update Record</button>
@@ -130,36 +136,29 @@
         <!-- JavaScript function to validate form input before submission -->
         <script>
             function validateForm() {
-                const firstName = document.getElementById('first_name').value;
-                const lastName = document.getElementById('last_name').value;
-                const email = document.getElementById('email').value;
-                const gender = document.getElementById('gender').value;
-                const ipAddress = document.getElementById('ip_address').value;
+                const firstName = document.getElementById('f_name').value;
+                const middleName = document.getElementById('m_name').value;
+                const lastName = document.getElementById('l_name').value;
+                const city = document.getElementById('City_idCity').value;
+                const job = document.getElementById('Job_idJob').value;
         
                 let errors = [];
         
                 // Check if required fields are filled
-                if (!firstName || !lastName || !email) {
-                    errors.push("First Name, Last Name, and Email are required.");
+                if (!firstName || !lastName) {
+                    errors.push("First and Last Name are required.");
                 }
         
-                // Validate email format
-                const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailPattern.test(email)) {
-                    errors.push("Invalid email address.");
-                }
         
                 // Validate gender selection
-                const validGenders = ['Male', 'Female', 'Other'];
-                if (!validGenders.includes(gender)) {
-                    errors.push("Invalid gender selected.");
+                if (!city) {
+                    errors.push("City is required.");
+                }
+                if (!job) {
+                    errors.push("Job is required.");
                 }
         
-                // Validate IP address format
-                const ipPattern = /^(?:\d{1,3}\.){3}\d{1,3}$/;
-                if (!ipPattern.test(ipAddress)) {
-                    errors.push("Invalid IP address.");
-                }
+                // No email or IP fields in this form; skip those validations.
         
                 // Display errors if any
                 if (errors.length > 0) {

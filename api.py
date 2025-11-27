@@ -19,7 +19,7 @@ mysql = MySQL(app)  # Initialize MySQL with Flask app
 # Helper function to format the response in either JSON or XML
 def format_response(data, response_format):
     if response_format == 'xml':
-        root = ET.Element("mock_data")  # Root element for XML
+        root = ET.Element("name")  # Root element for XML
         for item in data:
             record = ET.SubElement(root, "record")  # Each record as a sub-element
             for key, value in item.items():
@@ -36,59 +36,55 @@ def format_response(data, response_format):
 @app.route('/')
 def index():
     cur = mysql.connection.cursor()  # Create a cursor to interact with the database
-    cur.execute("SELECT * FROM mock_data")  # Fetch all records from the mock_data table
-    mock_data = cur.fetchall()  # Store the results in a variable
+    # Join name with city and job to get readable names for city and job
+    cur.execute("SELECT n.idName, n.f_name, n.m_name, n.l_name, n.City_idCity, n.Job_idJob, c.PPC as city_name, j.`White color` as job_name FROM cselec.name n LEFT JOIN cselec.city c ON n.City_idCity = c.idCity LEFT JOIN cselec.job j ON n.Job_idJob = j.idJob;")
+    names = cur.fetchall()  # Store the results in a variable
     cur.close()  # Close the cursor
 
-    return render_template('index.html', mock_data=mock_data)  # Render index.html with the data
+    return render_template('index.html', name=names)  # Render index.html with the data
 
-# Route to render the form for adding a new record
+# Route to render the form for adding a new record (show city and job lists)
 @app.route('/add_form', methods=['GET'])
 def add_form():
-    return render_template('add.html')  # Render add.html form for adding data
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT idCity, PPC FROM cselec.city")
+    cities = cur.fetchall()
+    cur.execute("SELECT idJob, `White color` FROM cselec.job")
+    jobs = cur.fetchall()
+    cur.close()
+    return render_template('add.html', cities=cities, jobs=jobs)  # Render add.html form for adding data
 
 # Route to handle form submission for adding a new record (Create operation)
 @app.route('/add', methods=['POST'])
 def add():
     if request.method == 'POST':
-        # Extract form data
-        first_name = request.form['first_name']
-        last_name = request.form['last_name']
-        email = request.form['email']
-        gender = request.form['gender']
-        ip_address = request.form['ip_address']
+        f_name = request.form.get('f_name')
+        m_name = request.form.get('m_name')
+        l_name = request.form.get('l_name')
+        City_idCity = request.form.get('City_idCity')
+        Job_idJob = request.form.get('Job_idJob')
 
-        # Input validation
-        if not first_name or not last_name or not email:
-            flash("First Name, Last Name, and Email are required!")
+        # Simple validation
+        if not f_name or not l_name:
+            flash("First and Last Name are required!")
             return redirect(url_for('add_form'))
 
-        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-            flash("Invalid Email Address!")
-            return redirect(url_for('add_form'))
-
-        if gender not in ['Male', 'Female', 'Other']:
-            flash("Invalid Gender!")
-            return redirect(url_for('add_form'))
-
-        if not re.match(r"^(?:\d{1,3}\.){3}\d{1,3}$", ip_address):
-            flash("Invalid IP Address!")
-            return redirect(url_for('add_form'))
-
-        cur = mysql.connection.cursor()  # Create a cursor
+        cur = mysql.connection.cursor()
         try:
-            # Insert the new record into the mock_data table
-            cur.execute("INSERT INTO mock_data (first_name, last_name, email, gender, ip_address) VALUES (%s, %s, %s, %s, %s)",
-                        (first_name, last_name, email, gender, ip_address))
-            mysql.connection.commit()  # Commit the transaction
-            flash("Record successfully added!")
+            cur.execute("""
+                INSERT INTO name (f_name, m_name, l_name, City_idCity, Job_idJob)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (f_name, m_name, l_name, City_idCity, Job_idJob))
+            mysql.connection.commit()
+            flash("Record added successfully!")
         except Exception as e:
-            mysql.connection.rollback()  # Rollback if there is any error
-            flash(f"Error occurred: {str(e)}")
+            mysql.connection.rollback()
+            flash(f"Error: {str(e)}")
         finally:
-            cur.close()  # Close the cursor
+            cur.close()
 
-        return redirect(url_for('index'))  # Redirect to the index page after adding the record
+        return redirect(url_for('index'))
+
 
 # Route to edit an existing record (Update operation)
 @app.route('/edit/<int:id>', methods=['GET', 'POST'])
@@ -97,36 +93,24 @@ def edit(id):
 
     if request.method == 'POST':
         # Extract form data
-        first_name = request.form['first_name']
-        last_name = request.form['last_name']
-        email = request.form['email']
-        gender = request.form['gender']
-        ip_address = request.form['ip_address']
+        f_name = request.form.get('f_name')
+        m_name = request.form.get('m_name')
+        l_name = request.form.get('l_name')
+        City_idCity = request.form.get('City_idCity')
+        Job_idJob = request.form.get('Job_idJob')
 
         # Input validation
-        if not first_name or not last_name or not email:
-            flash("First Name, Last Name, and Email are required!")
-            return redirect(url_for('edit', id=id))
-
-        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-            flash("Invalid Email Address!")
-            return redirect(url_for('edit', id=id))
-
-        if gender not in ['Male', 'Female', 'Other']:
-            flash("Invalid Gender!")
-            return redirect(url_for('edit', id=id))
-
-        if not re.match(r"^(?:\d{1,3}\.){3}\d{1,3}$", ip_address):
-            flash("Invalid IP Address!")
+        if not f_name or not l_name:
+            flash("First and Last Name are required!")
             return redirect(url_for('edit', id=id))
 
         try:
-            # Update the record in the mock_data table
+            # Update the record in the name table
             cur.execute("""
-                UPDATE mock_data 
-                SET first_name=%s, last_name=%s, email=%s, gender=%s, ip_address=%s 
-                WHERE id=%s
-                """, (first_name, last_name, email, gender, ip_address, id))
+                UPDATE name
+                SET f_name=%s, m_name=%s, l_name=%s, City_idCity=%s, Job_idJob=%s
+                WHERE idName=%s
+                """, (f_name, m_name, l_name, City_idCity, Job_idJob, id))
             mysql.connection.commit()  # Commit the transaction
             flash("Record successfully updated!")
         except Exception as e:
@@ -137,11 +121,16 @@ def edit(id):
 
         return redirect(url_for('index'))  # Redirect to the index page after updating the record
 
-    cur.execute("SELECT * FROM mock_data WHERE id=%s", (id,))  # Fetch the record to edit
+    # For GET request, fetch the record and lists for select inputs
+    cur.execute("SELECT * FROM name WHERE idName=%s", (id,))  # Fetch the record to edit
     record = cur.fetchone()  # Store the result in a variable
+    cur.execute("SELECT idCity, PPC FROM cselec.city")
+    cities = cur.fetchall()
+    cur.execute("SELECT idJob, `White color` FROM cselec.job")
+    jobs = cur.fetchall()
     cur.close()  # Close the cursor
     
-    return render_template('edit.html', record=record)  # Render the edit.html form with the record data
+    return render_template('edit.html', record=record, cities=cities, jobs=jobs)  # Render the edit.html form with the record data
 
 # Route to delete a record (Delete operation)
 @app.route('/delete/<int:id>', methods=['POST'])
@@ -149,8 +138,8 @@ def delete(id):
     cur = mysql.connection.cursor()  # Create a cursor
 
     try:
-        # Delete the record from the mock_data table
-        cur.execute("DELETE FROM mock_data WHERE id=%s", (id,))
+        # Delete the record from the name table
+        cur.execute("DELETE FROM name WHERE idName=%s", (id,))
         mysql.connection.commit()  # Commit the transaction
         flash("Record successfully deleted!")
     except Exception as e:
@@ -165,23 +154,35 @@ def delete(id):
 @app.route('/search', methods=['GET'])
 def search():
     query = request.args.get('query', '')  # Get the search query from the request
-    filter_by = request.args.get('filter_by', 'first_name')  # Get the filter option (default to first_name)
+    filter_by = request.args.get('filter_by', 'all')  # Get the filter option (default to all)
 
     cur = mysql.connection.cursor()  # Create a cursor
 
     if query:
-        # Use LIKE for partial matching in the search query
-        search_query = f"SELECT * FROM mock_data WHERE {filter_by} LIKE %s"
-        cur.execute(search_query, (f'%{query}%',))
-        search_results = cur.fetchall()  # Store the search results
+        # Special handling for searching city or job by their displayed name
+        if filter_by == 'city':
+            cur.execute("SELECT n.idName, n.f_name, n.m_name, n.l_name, c.PPC as city_name, j.`White color` as job_name FROM cselec.name n LEFT JOIN cselec.city c ON n.City_idCity = c.idCity LEFT JOIN cselec.job j ON n.Job_idJob = j.idJob WHERE c.PPC LIKE %s", (f'%{query}%',))
+            search_results = cur.fetchall()
+        elif filter_by == 'job':
+            cur.execute("SELECT n.idName, n.f_name, n.m_name, n.l_name, c.PPC as city_name, j.`White color` as job_name FROM cselec.name n LEFT JOIN cselec.city c ON n.City_idCity = c.idCity LEFT JOIN cselec.job j ON n.Job_idJob = j.idJob WHERE j.`White color` LIKE %s", (f'%{query}%',))
+            search_results = cur.fetchall()
+        elif filter_by == 'all':
+            # Search across name fields and related city and job names
+            cur.execute("SELECT n.idName, n.f_name, n.m_name, n.l_name, c.PPC as city_name, j.`White color` as job_name FROM cselec.name n LEFT JOIN cselec.city c ON n.City_idCity = c.idCity LEFT JOIN cselec.job j ON n.Job_idJob = j.idJob WHERE n.f_name LIKE %s OR n.m_name LIKE %s OR n.l_name LIKE %s OR c.PPC LIKE %s OR j.`White color` LIKE %s", (f'%{query}%', f'%{query}%', f'%{query}%', f'%{query}%', f'%{query}%',))
+            search_results = cur.fetchall()
+        else:
+            # Use LIKE for partial matching in the name table columns
+            query_column = filter_by if filter_by in ['f_name', 'm_name', 'l_name'] else 'f_name'
+            cur.execute(f"SELECT n.idName, n.f_name, n.m_name, n.l_name, c.PPC as city_name, j.`White color` as job_name FROM cselec.name n LEFT JOIN cselec.city c ON n.City_idCity = c.idCity LEFT JOIN cselec.job j ON n.Job_idJob = j.idJob WHERE n.{query_column} LIKE %s", (f'%{query}%',))
+            search_results = cur.fetchall()  # Store the search results
     else:
         # If no search query is provided, return all records
-        cur.execute("SELECT * FROM mock_data")
+        cur.execute("SELECT n.idName, n.f_name, n.m_name, n.l_name, c.PPC as city_name, j.`White color` as job_name FROM cselec.name n LEFT JOIN cselec.city c ON n.City_idCity = c.idCity LEFT JOIN cselec.job j ON n.Job_idJob = j.idJob")
         search_results = cur.fetchall()  # Store all records
 
     cur.close()  # Close the cursor
 
-    return render_template('index.html', mock_data=search_results)  # Render index.html with search results
+    return render_template('index.html', name=search_results)  # Render index.html with search results
 
 if __name__ == '__main__':
     app.run(debug=True)  # Run the Flask app in debug mode
